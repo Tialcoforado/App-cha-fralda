@@ -27,7 +27,10 @@ function makeGiftFromRaw(raw){
     description: raw.descricao || raw.description || '',
     link: raw.link || raw.url || '',
     reservedById: raw.reservedById || '',
-    purchased: !!raw.comprado || !!raw.purchased
+    purchased: !!raw.comprado || !!raw.purchased,
+    sizesSupported: !!raw.sizesSupported,
+    // reservations: array of { guestId, sizes: {RN,P,M,G} }
+    reservations: raw.reservations || []
   };
 }
 
@@ -146,10 +149,59 @@ function renderGifts(){
     left.appendChild(link);
     left.appendChild(reserved);
 
+    // If gift supports sizes (ex: fraldas), show aggregate counters and tooltip list
+    if(gift.sizesSupported){
+      const sizesWrap = document.createElement('div');
+      sizesWrap.className = 'sizes-wrap muted';
+      const sizeKeys = ['RN','P','M','G'];
+      // compute totals
+      const totals = sizeKeys.reduce((acc,k)=>{acc[k]=0;return acc},{RN:0,P:0,M:0,G:0});
+      gift.reservations.forEach(r => {
+        if(!r.sizes) return;
+        sizeKeys.forEach(k => { totals[k] += Number(r.sizes[k] || 0); });
+      });
+      sizeKeys.forEach(k => {
+        const span = document.createElement('span');
+        span.className = 'size-count';
+        span.textContent = `${k}: ${totals[k]}`;
+        // help button
+        const helpBtn = document.createElement('button');
+        helpBtn.className = 'help-btn';
+        helpBtn.textContent = '?';
+        // tooltip with list of guests who contributed to this size
+        const tooltip = document.createElement('div');
+        tooltip.className = 'help-tooltip';
+        tooltip.style.display = 'none';
+        const list = document.createElement('ul');
+        list.className = 'tooltip-list';
+        gift.reservations.forEach(r => {
+          const qty = Number(r.sizes && r.sizes[k] || 0);
+          if(qty > 0){
+            const li = document.createElement('li');
+            const guestName = (guests.find(g => g.id === r.guestId) || {}).name || 'Anônimo';
+            li.textContent = `${guestName}: ${qty}`;
+            list.appendChild(li);
+          }
+        });
+        if(!list.children.length){
+          const li = document.createElement('li'); li.textContent = '— nenhum —'; list.appendChild(li);
+        }
+        tooltip.appendChild(list);
+        helpBtn.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          tooltip.style.display = tooltip.style.display === 'none' ? 'block' : 'none';
+        });
+        span.appendChild(helpBtn);
+        span.appendChild(tooltip);
+        sizesWrap.appendChild(span);
+      });
+      left.appendChild(sizesWrap);
+    }
+
     const actions = document.createElement('div');
     actions.className = 'actions';
 
-    // Reserve select (inline) — melhora UX: escolha um convidado para reservar
+    // Reserve select (inline) — escolha um convidado para reservar
     const reserveSelect = document.createElement('select');
     const emptyOpt = document.createElement('option');
     emptyOpt.value = '';
@@ -164,6 +216,37 @@ function renderGifts(){
       reserveSelect.appendChild(opt);
     });
     reserveSelect.addEventListener('change', () => setGiftReservation(gift.id, reserveSelect.value));
+
+    // If gift supports sizes, add inline size inputs when a guest is selected
+    let sizeForm = null;
+    if(gift.sizesSupported){
+      sizeForm = document.createElement('div');
+      sizeForm.className = 'size-form';
+      sizeForm.style.display = 'none';
+      const sizeKeys = ['RN','P','M','G'];
+      sizeKeys.forEach(k => {
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.min = '0'; inp.value = '0'; inp.placeholder = k; inp.className = 'size-input';
+        inp.dataset.size = k;
+        sizeForm.appendChild(inp);
+      });
+      const addUnitsBtn = document.createElement('button');
+      addUnitsBtn.textContent = 'Registrar unidades';
+      addUnitsBtn.addEventListener('click', (ev)=>{
+        ev.preventDefault();
+        const guestId = reserveSelect.value;
+        if(!guestId) return alert('Escolha um convidado para registrar unidades.');
+        const sizes = {};
+        Array.from(sizeForm.querySelectorAll('.size-input')).forEach(i=>{ sizes[i.dataset.size]= Number(i.value) || 0; });
+        addOrUpdateSizeReservation(gift.id, guestId, sizes);
+      });
+      sizeForm.appendChild(addUnitsBtn);
+      actions.appendChild(sizeForm);
+      // when reserveSelect changes, show/hide sizeForm
+      reserveSelect.addEventListener('change', ()=>{
+        if(reserveSelect.value) sizeForm.style.display = 'flex'; else sizeForm.style.display = 'none';
+      });
+    }
 
     const purchasedBtn = document.createElement('button');
     purchasedBtn.textContent = gift.purchased ? 'Desmarcar comprado' : 'Marcar comprado';
@@ -184,8 +267,24 @@ function renderGifts(){
 }
 
 function addGift(name){
-  const newGift = {id: Date.now().toString(), name: name.trim(), reservedById: '', purchased: false};
+  const newGift = {id: Date.now().toString(), name: name.trim(), reservedById: '', purchased: false, sizesSupported: false, reservations: []};
   gifts.push(newGift);
+  saveState();
+  renderGifts();
+}
+
+function addOrUpdateSizeReservation(giftId, guestId, sizes){
+  const gIndex = gifts.findIndex(g => g.id === giftId);
+  if(gIndex === -1) return;
+  const gift = gifts[gIndex];
+  gift.reservations = gift.reservations || [];
+  const rIndex = gift.reservations.findIndex(r => r.guestId === guestId);
+  if(rIndex === -1){
+    gift.reservations.push({guestId, sizes});
+  } else {
+    // merge sizes (replace with provided values)
+    gift.reservations[rIndex].sizes = sizes;
+  }
   saveState();
   renderGifts();
 }

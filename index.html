@@ -9,13 +9,50 @@
 <body>
   <header class="site-header">
     <div class="container">
-      <h1>Chá de Fraldas</h1>
-      <p class="subtitle">Gerencie convidados e presentes de forma simples</p>
+      <div class="header-inner">
+        <div class="logo">
+          <svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#2bb673" />
+                <stop offset="1" stop-color="#4aa3ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="32" cy="32" r="30" fill="url(#g1)" />
+            <g transform="translate(12,14)" fill="#fff">
+              <path d="M14 0c-3 3-6 4-9 4s-6-1-9-4c3 6 9 11 9 11s6-5 9-11z" />
+            </g>
+          </svg>
+          <div class="brand">Chá de Fraldas</div>
+        </div>
+        <p class="subtitle">Gerencie convidados e presentes de forma simples</p>
+      </div>
     </div>
   </header>
 
+  <section class="hero">
+    <div class="container">
+      <h2>Bem-vindos!</h2>
+      <p class="lead">Obrigado por fazer parte desta nova fase tão especial — sua presença e colaboração significam muito.</p>
+      <div class="cta">
+        <a href="#guests-section" class="btn btn-primary">Confirmar presença</a>
+        <a href="#gifts-section" class="btn">Escolher presente</a>
+      </div>
+        <div class="instructions">
+          <h3>Como usar este convite</h3>
+          <ol>
+            <li>Clique em "Confirmar presença" para registrar seu nome e status (pendente/confirmado/cancelado).</li>
+            <li>Ou clique em "Escolher presente" para ir ao painel de presentes.</li>
+            <li>Ao escolher um presente, selecione seu nome no campo de reserva e, se for fralda, informe as quantidades por tamanho (RN, P, M, G) e clique em "Registrar unidades".</li>
+            <li>Clique no botão <span class="help-btn">?</span> ao lado de qualquer contador para ver a lista de convidados que registraram unidades.</li>
+            <li>Os dados são salvos localmente no seu navegador (localStorage). Para limpar, use as devtools do navegador ou o botão de limpar dados do navegador.</li>
+          </ol>
+        </div>
+    </div>
+  </section>
+
   <main class="container main-grid">
-    <section class="card">
+    <section id="guests-section" class="card">
       <h2>Convidados</h2>
       <form id="guest-form" class="form-inline">
         <input type="text" id="guest-name" placeholder="Nome do convidado" required>
@@ -29,7 +66,7 @@
       <ul id="guest-list" class="list"></ul>
     </section>
 
-    <section class="card">
+    <section id="gifts-section" class="card">
       <h2>Presentes</h2>
       <form id="gift-form" class="form-inline">
         <input type="text" id="gift-name" placeholder="Nome do presente" required>
