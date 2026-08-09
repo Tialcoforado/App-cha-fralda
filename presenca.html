@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Confirmar Presença — Chá de Fraldas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <div class="header-inner">
+        <div class="logo">
+          <svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#2bb673" />
+                <stop offset="1" stop-color="#4aa3ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="32" cy="32" r="30" fill="url(#g1)" />
+            <g transform="translate(12,14)" fill="#fff">
+              <path d="M14 0c-3 3-6 4-9 4s-6-1-9-4c3 6 9 11 9 11s6-5 9-11z" />
+            </g>
+          </svg>
+          <div class="brand">Chá de Fraldas</div>
+        </div>
+        <p class="subtitle">Confirmar presença</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Confirmar presença</h2>
+      <form id="guest-form" class="form-inline">
+        <input type="text" id="guest-name" placeholder="Nome do convidado" required>
+        <select id="guest-rsvp">
+          <option value="pendente">Pendente</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <button type="submit">Adicionar</button>
+      </form>
+      <div style="margin-top:12px">
+        <ul id="guest-list" class="list"></ul>
+      </div>
+      <div style="margin-top:12px">
+        <a href="index.html" class="btn">Voltar</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
