@@ -36,6 +36,66 @@ function makeGiftFromRaw(raw){
 let guests = [];
 let gifts = [];
 
+function getGuestNameById(guestId) {
+  if (!guestId) return 'Convidado';
+  return (guests.find(g => g.id === guestId) || {}).name || 'Convidado';
+}
+
+function getGiftReservations(gift) {
+  return Array.isArray(gift.reservations) ? gift.reservations : [];
+}
+
+function getReservationsForSize(gift, sizeKey) {
+  return getGiftReservations(gift)
+    .filter(entry => Number(entry?.sizes?.[sizeKey] || 0) > 0)
+    .map(entry => ({
+      guestId: entry.guestId,
+      name: getGuestNameById(entry.guestId),
+      quantity: Number(entry.sizes?.[sizeKey] || 0)
+    }));
+}
+
+function getReservationsForGift(gift) {
+  return getGiftReservations(gift)
+    .filter(entry => Number(entry?.quantity || 0) > 0)
+    .map(entry => ({
+      guestId: entry.guestId,
+      name: getGuestNameById(entry.guestId),
+      quantity: Number(entry.quantity || 0)
+    }));
+}
+
+function addReservationForGift(giftId, guestId, quantity, sizeKey = null) {
+  const giftIndex = gifts.findIndex(g => g.id === giftId);
+  if (giftIndex === -1 || !guestId) return;
+
+  const gift = gifts[giftIndex];
+  const parsedQuantity = Number(quantity || 0);
+  if (parsedQuantity <= 0) return;
+
+  gift.reservations = Array.isArray(gift.reservations) ? gift.reservations : [];
+  const existing = gift.reservations.find(entry => entry.guestId === guestId);
+
+  if (sizeKey) {
+    if (existing) {
+      const sizes = { ...(existing.sizes || {}) };
+      sizes[sizeKey] = (Number(sizes[sizeKey] || 0) + parsedQuantity);
+      existing.sizes = sizes;
+    } else {
+      gift.reservations.push({ guestId, sizes: { [sizeKey]: parsedQuantity } });
+    }
+  } else {
+    if (existing) {
+      existing.quantity = (Number(existing.quantity || 0) + parsedQuantity);
+    } else {
+      gift.reservations.push({ guestId, quantity: parsedQuantity });
+    }
+  }
+
+  saveState();
+  renderGifts();
+}
+
 function loadLocalState(){
   guests = JSON.parse(localStorage.getItem(GUESTS_KEY)) || [];
   gifts = JSON.parse(localStorage.getItem(GIFTS_KEY)) || DEFAULT_GIFTS_RAW.map(makeGiftFromRaw);
@@ -163,25 +223,41 @@ function removeGuest(id){
 function renderGifts(){
   if(!hasGiftSection) return;
   giftList.innerHTML = '';
+
   gifts.forEach(gift => {
     const li = document.createElement('li');
-    const left = document.createElement('div');
-    left.className = 'item-left';
+    li.className = 'gift-item';
 
+    const card = document.createElement('div');
+    card.className = 'gift-card';
+
+    const header = document.createElement('div');
+    header.className = 'gift-header';
+
+    const info = document.createElement('div');
+    info.className = 'gift-info';
+
+    const titleRow = document.createElement('div');
+    titleRow.className = 'gift-title-row';
     const title = document.createElement('div');
+    title.className = 'gift-title';
     title.textContent = gift.name;
     if(gift.purchased){
       const badge = document.createElement('span');
-      badge.className = 'badge';
+      badge.className = 'gift-badge';
       badge.textContent = 'Comprado';
-      title.appendChild(badge);
+      titleRow.appendChild(title);
+      titleRow.appendChild(badge);
+    } else {
+      titleRow.appendChild(title);
     }
 
     const desc = document.createElement('div');
-    desc.className = 'muted';
+    desc.className = 'gift-meta';
     desc.textContent = gift.description || '';
 
     const linkWrap = document.createElement('div');
+    linkWrap.className = 'gift-meta';
     if(gift.link){
       const a = document.createElement('a');
       a.href = gift.link;
@@ -190,33 +266,56 @@ function renderGifts(){
       linkWrap.appendChild(a);
     }
 
-    const reserved = document.createElement('div');
-    reserved.className = 'muted';
-    const reserverName = gift.reservedById ? (guests.find(g => g.id === gift.reservedById) || {}).name : '';
-    reserved.textContent = reserverName ? `Reservado por: ${reserverName}` : '';
+    info.appendChild(titleRow);
+    info.appendChild(desc);
+    info.appendChild(linkWrap);
 
-    left.appendChild(title);
-    left.appendChild(desc);
-    left.appendChild(linkWrap);
-    left.appendChild(reserved);
+    const actions = document.createElement('div');
+    actions.className = 'gift-actions';
 
-    // If gift supports sizes (ex: fraldas), show aggregate counters and tooltip list
+    const purchasedBtn = document.createElement('button');
+    purchasedBtn.className = 'btn btn-secondary';
+    purchasedBtn.textContent = gift.purchased ? 'Desmarcar comprado' : 'Marcar comprado';
+    purchasedBtn.addEventListener('click', () => togglePurchased(gift.id));
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn';
+    removeBtn.textContent = 'Remover';
+    removeBtn.addEventListener('click', () => removeGift(gift.id));
+
+    actions.appendChild(purchasedBtn);
+    actions.appendChild(removeBtn);
+
+    header.appendChild(info);
+    header.appendChild(actions);
+
+    card.appendChild(header);
+
     if(gift.sizesSupported){
-      const sizesWrap = document.createElement('div');
-      sizesWrap.className = 'sizes-wrap muted';
-      const sizeKeys = ['RN','P','M','G'];
-      const totals = sizeKeys.reduce((acc,k)=>{acc[k]=0;return acc;},{RN:0,P:0,M:0,G:0});
-      (gift.reservations || []).forEach(r => {
-        if(!r.sizes) return;
-        sizeKeys.forEach(k => { totals[k] += Number(r.sizes[k] || 0); });
-      });
-      sizeKeys.forEach(k => {
-        const span = document.createElement('span');
-        span.className = 'size-count';
-        span.textContent = `${k}: ${totals[k]}`;
+      const rows = document.createElement('ul');
+      rows.className = 'gift-rows';
 
+      ['RN','P','M','G'].forEach(sizeKey => {
+        const row = document.createElement('li');
+        row.className = 'gift-row';
+
+        const label = document.createElement('div');
+        label.className = 'gift-row-label';
+        label.textContent = `Fralda ${sizeKey}`;
+
+        const entries = getReservationsForSize(gift, sizeKey);
+        const totalQty = entries.reduce((sum, entry) => sum + entry.quantity, 0);
+        const summary = document.createElement('div');
+        summary.className = 'gift-row-meta';
+        summary.textContent = entries.length
+          ? `${entries.length} pessoa${entries.length === 1 ? '' : 's'} • ${totalQty} unidade${totalQty === 1 ? '' : 's'}`
+          : 'Sem reservas';
+
+        const helper = document.createElement('div');
+        helper.className = 'help-wrap';
         const helpBtn = document.createElement('button');
         helpBtn.className = 'help-btn';
+        helpBtn.type = 'button';
         helpBtn.textContent = '?';
 
         const tooltip = document.createElement('div');
@@ -224,107 +323,159 @@ function renderGifts(){
         tooltip.style.display = 'none';
         const list = document.createElement('ul');
         list.className = 'tooltip-list';
-        (gift.reservations || []).forEach(r => {
-          const qty = Number(r.sizes && r.sizes[k] || 0);
-          if(qty > 0){
+        if(entries.length){
+          entries.forEach(entry => {
             const li2 = document.createElement('li');
-            const guestName = (guests.find(g => g.id === r.guestId) || {}).name || 'Anônimo';
-            li2.textContent = `${guestName}: ${qty}`;
+            li2.textContent = `${entry.name}: ${entry.quantity}`;
             list.appendChild(li2);
-          }
-        });
-        if(!list.children.length){
-          const none = document.createElement('li'); none.textContent = '— nenhum —'; list.appendChild(none);
+          });
+        } else {
+          const none = document.createElement('li');
+          none.textContent = '— nenhuma reserva —';
+          list.appendChild(none);
         }
         tooltip.appendChild(list);
-        helpBtn.addEventListener('click', (e)=>{
-          e.stopPropagation();
+        helpBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
           tooltip.style.display = tooltip.style.display === 'none' ? 'block' : 'none';
         });
+        helper.appendChild(helpBtn);
+        helper.appendChild(tooltip);
 
-        span.appendChild(helpBtn);
-        span.appendChild(tooltip);
-        sizesWrap.appendChild(span);
+        const controls = document.createElement('div');
+        controls.className = 'gift-row-controls';
+
+        const guestSelect = document.createElement('select');
+        const placeholderOpt = document.createElement('option');
+        placeholderOpt.value = '';
+        placeholderOpt.textContent = guests.length ? '-- escolher --' : '-- sem convidados --';
+        guestSelect.appendChild(placeholderOpt);
+        guests.forEach(guest => {
+          const option = document.createElement('option');
+          option.value = guest.id;
+          option.textContent = guest.name;
+          guestSelect.appendChild(option);
+        });
+        if(!guests.length){
+          guestSelect.disabled = true;
+        }
+
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number';
+        qtyInput.min = '1';
+        qtyInput.value = '1';
+        qtyInput.className = 'size-input';
+        qtyInput.placeholder = 'Qtd';
+
+        const reserveBtn = document.createElement('button');
+        reserveBtn.className = 'btn btn-small';
+        reserveBtn.type = 'button';
+        reserveBtn.textContent = 'Reservar';
+        reserveBtn.addEventListener('click', () => {
+          const guestId = guestSelect.value;
+          if(!guestId) return;
+          addReservationForGift(gift.id, guestId, qtyInput.value, sizeKey);
+        });
+
+        controls.appendChild(guestSelect);
+        controls.appendChild(qtyInput);
+        controls.appendChild(reserveBtn);
+
+        row.appendChild(label);
+        row.appendChild(summary);
+        row.appendChild(helper);
+        row.appendChild(controls);
+        rows.appendChild(row);
       });
-      left.appendChild(sizesWrap);
-    }
 
-    const actions = document.createElement('div');
-    actions.className = 'actions';
-
-    // Reserve select (inline)
-    const reserveSelect = document.createElement('select');
-    const emptyOpt = document.createElement('option');
-    emptyOpt.value = '';
-    emptyOpt.textContent = guests.length ? '-- Reservar como --' : '-- Sem convidados --';
-    if(!guests.length) emptyOpt.disabled = true;
-    reserveSelect.appendChild(emptyOpt);
-    guests.forEach(g => {
-      const opt = document.createElement('option');
-      opt.value = g.id;
-      opt.textContent = g.name;
-      if(g.id === gift.reservedById) opt.selected = true;
-      reserveSelect.appendChild(opt);
-    });
-    reserveSelect.addEventListener('change', () => setGiftReservation(gift.id, reserveSelect.value));
-
-    actions.appendChild(reserveSelect);
-
-    // If gift supports sizes, add inline size inputs when a guest is selected
-    if(gift.sizesSupported){
-      const sizeForm = document.createElement('div');
-      sizeForm.className = 'size-form';
-      sizeForm.style.display = 'none';
-      const sizeKeys = ['RN','P','M','G'];
-      sizeKeys.forEach(k => {
-        const inp = document.createElement('input');
-        inp.type = 'number'; inp.min = '0'; inp.value = '0'; inp.placeholder = k; inp.className = 'size-input';
-        inp.dataset.size = k;
-        sizeForm.appendChild(inp);
-      });
-      const sendUnitsBtn = document.createElement('button');
-      sendUnitsBtn.textContent = 'Enviar presente';
-      sendUnitsBtn.addEventListener('click', (ev)=>{
-        ev.preventDefault();
-        const guestId = reserveSelect.value;
-        if(!guestId) return alert('Escolha um convidado para enviar a confirmação do presente.');
-        const sizes = {};
-        Array.from(sizeForm.querySelectorAll('.size-input')).forEach(i=>{ sizes[i.dataset.size]= Number(i.value) || 0; });
-        addOrUpdateSizeReservation(gift.id, guestId, sizes);
-        alert('Confirmação do presente enviada. Obrigado!');
-      });
-      sizeForm.appendChild(sendUnitsBtn);
-      actions.appendChild(sizeForm);
-      reserveSelect.addEventListener('change', ()=>{
-        sizeForm.style.display = reserveSelect.value ? 'flex' : 'none';
-      });
+      card.appendChild(rows);
     } else {
-      // For non-size gifts: explicit send button
-      const sendGiftBtn = document.createElement('button');
-      sendGiftBtn.textContent = 'Enviar presente';
-      sendGiftBtn.addEventListener('click', (ev)=>{
-        ev.preventDefault();
-        const guestId = reserveSelect.value;
-        if(!guestId) return alert('Escolha um convidado para enviar a confirmação do presente.');
-        setGiftReservation(gift.id, guestId);
-        alert('Confirmação do presente enviada. Obrigado!');
+      const row = document.createElement('div');
+      row.className = 'gift-row';
+
+      const entries = getReservationsForGift(gift);
+      const totalQty = entries.reduce((sum, entry) => sum + entry.quantity, 0);
+      const summary = document.createElement('div');
+      summary.className = 'gift-row-meta';
+      summary.textContent = entries.length
+        ? `${entries.length} pessoa${entries.length === 1 ? '' : 's'} • ${totalQty} unidade${totalQty === 1 ? '' : 's'}`
+        : 'Sem reservas';
+
+      const helper = document.createElement('div');
+      helper.className = 'help-wrap';
+      const helpBtn = document.createElement('button');
+      helpBtn.className = 'help-btn';
+      helpBtn.type = 'button';
+      helpBtn.textContent = '?';
+      const tooltip = document.createElement('div');
+      tooltip.className = 'help-tooltip';
+      tooltip.style.display = 'none';
+      const list = document.createElement('ul');
+      list.className = 'tooltip-list';
+      if(entries.length){
+        entries.forEach(entry => {
+          const li2 = document.createElement('li');
+          li2.textContent = `${entry.name}: ${entry.quantity}`;
+          list.appendChild(li2);
+        });
+      } else {
+        const none = document.createElement('li');
+        none.textContent = '— nenhuma reserva —';
+        list.appendChild(none);
+      }
+      tooltip.appendChild(list);
+      helpBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        tooltip.style.display = tooltip.style.display === 'none' ? 'block' : 'none';
       });
-      actions.appendChild(sendGiftBtn);
+      helper.appendChild(helpBtn);
+      helper.appendChild(tooltip);
+
+      const controls = document.createElement('div');
+      controls.className = 'gift-row-controls';
+      const guestSelect = document.createElement('select');
+      const placeholderOpt = document.createElement('option');
+      placeholderOpt.value = '';
+      placeholderOpt.textContent = guests.length ? '-- escolher --' : '-- sem convidados --';
+      guestSelect.appendChild(placeholderOpt);
+      guests.forEach(guest => {
+        const option = document.createElement('option');
+        option.value = guest.id;
+        option.textContent = guest.name;
+        guestSelect.appendChild(option);
+      });
+      if(!guests.length){
+        guestSelect.disabled = true;
+      }
+
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'number';
+      qtyInput.min = '1';
+      qtyInput.value = '1';
+      qtyInput.className = 'size-input';
+      qtyInput.placeholder = 'Qtd';
+
+      const reserveBtn = document.createElement('button');
+      reserveBtn.className = 'btn btn-small';
+      reserveBtn.type = 'button';
+      reserveBtn.textContent = 'Reservar';
+      reserveBtn.addEventListener('click', () => {
+        const guestId = guestSelect.value;
+        if(!guestId) return;
+        addReservationForGift(gift.id, guestId, qtyInput.value);
+      });
+
+      controls.appendChild(guestSelect);
+      controls.appendChild(qtyInput);
+      controls.appendChild(reserveBtn);
+
+      row.appendChild(summary);
+      row.appendChild(helper);
+      row.appendChild(controls);
+      card.appendChild(row);
     }
 
-    const purchasedBtn = document.createElement('button');
-    purchasedBtn.textContent = gift.purchased ? 'Desmarcar comprado' : 'Marcar comprado';
-    purchasedBtn.addEventListener('click', () => togglePurchased(gift.id));
-
-    const removeBtn = document.createElement('button');
-    removeBtn.textContent = 'Remover';
-    removeBtn.addEventListener('click', () => removeGift(gift.id));
-
-    actions.appendChild(purchasedBtn);
-    actions.appendChild(removeBtn);
-
-    li.appendChild(left);
-    li.appendChild(actions);
+    li.appendChild(card);
     giftList.appendChild(li);
   });
 }
@@ -332,35 +483,6 @@ function renderGifts(){
 function addGift(name){
   const newGift = {id: Date.now().toString(), name: name.trim(), reservedById: '', purchased: false, sizesSupported: false, reservations: []};
   gifts.push(newGift);
-  saveState();
-  renderGifts();
-}
-
-function addOrUpdateSizeReservation(giftId, guestId, sizes){
-  const gIndex = gifts.findIndex(g => g.id === giftId);
-  if(gIndex === -1) return;
-  const gift = gifts[gIndex];
-  gift.reservations = gift.reservations || [];
-  const rIndex = gift.reservations.findIndex(r => r.guestId === guestId);
-  if(rIndex === -1){
-    gift.reservations.push({guestId, sizes});
-  } else {
-    gift.reservations[rIndex].sizes = sizes;
-  }
-  saveState();
-  renderGifts();
-}
-
-function setGiftReservation(id, guestId){
-  const index = gifts.findIndex(g => g.id === id);
-  if(index === -1) return;
-  if(!guestId){
-    gifts[index].reservedById = '';
-  } else {
-    const guestExists = guests.some(g => g.id === guestId);
-    if(!guestExists) return;
-    gifts[index].reservedById = guestId;
-  }
   saveState();
   renderGifts();
 }

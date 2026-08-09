@@ -7,8 +7,14 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@actinc/dls": "^10.0.0",
+    "@mui/material": "^7.3.11",
+    "@mui/system": "^9.3.0",
+    "@mui/x-data-grid": "^9.11.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "sqlite3": "^5.1.6"
   }
 }

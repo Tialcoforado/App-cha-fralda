@@ -34,19 +34,33 @@ html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Seg
 .form-inline{display:flex;gap:8px;align-items:center;margin-bottom:12px}
 .form-inline input[type="text"], .form-inline select{flex:1;padding:8px;border:1px solid #e6e9ef;border-radius:6px}
 .form-inline button{background:var(--accent);color:white;border:0;padding:8px 12px;border-radius:6px;cursor:pointer}
-.list{list-style:none;padding:0;margin:0}
-.list li{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;border:1px solid #eef6f2;margin-bottom:10px}
-.item-left{display:flex;gap:12px;align-items:center}
+.list{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.list > li{padding:0}
+.gift-item{width:100%}
+.gift-card{display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:18px;border:1px solid #e9f2ea;background:linear-gradient(180deg,#ffffff 0%, #fbfffc 100%);box-shadow:0 10px 30px rgba(15,23,42,0.05)}
+.gift-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.gift-info{display:flex;flex-direction:column;gap:6px}
+.gift-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gift-title{font-size:1rem;font-weight:700;color:#14212b}
+.gift-meta{color:var(--muted);font-size:0.95rem}
+.gift-badge{background:linear-gradient(90deg,var(--accent-green),var(--accent-blue));color:white;padding:6px 10px;border-radius:999px;font-size:0.8rem}
+.gift-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.gift-actions button{border:0;cursor:pointer}
+.gift-actions .btn-secondary{background:var(--accent-green);color:white}
+.gift-rows{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.gift-row{display:grid;grid-template-columns:1.1fr 1fr auto auto;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid #eef5ef}
+.gift-row-label{font-weight:600;color:#18313d}
+.gift-row-meta{color:var(--muted);font-size:0.92rem}
+.help-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.help-btn{background:transparent;border:1px solid rgba(11,41,23,0.06);border-radius:50%;width:24px;height:24px;line-height:22px;padding:0;cursor:pointer;color:var(--muted)}
+.help-tooltip{position:absolute;right:0;top:30px;background:white;padding:10px;border:1px solid rgba(11,41,23,0.06);border-radius:10px;box-shadow:0 10px 30px rgba(8,18,14,0.08);z-index:50;min-width:220px}
+.tooltip-list{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.tooltip-list li{padding:4px 0;border-bottom:1px dashed rgba(11,41,23,0.08)}
+.gift-row-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.gift-row-controls select, .gift-row-controls input{padding:8px;border:1px solid #e3e9e3;border-radius:8px}
+.gift-row-controls input{width:64px}
+.btn-small{padding:8px 10px;border-radius:8px;background:var(--accent-blue);color:white}
 .muted{color:var(--muted);font-size:0.95rem}
-.badge{background:linear-gradient(90deg,var(--accent-green),var(--accent-blue));color:white;padding:6px 10px;border-radius:999px;font-size:0.8rem}
-.actions button{background:transparent;border:0;color:var(--muted);cursor:pointer;margin-left:8px}
-.sizes-wrap{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
-.size-count{background:var(--surface);padding:8px 10px;border-radius:8px;border:1px solid rgba(11,41,23,0.04);display:inline-flex;align-items:center;gap:8px;position:relative}
-.help-btn{background:transparent;border:1px solid rgba(11,41,23,0.06);border-radius:50%;width:22px;height:22px;line-height:20px;padding:0;cursor:pointer;color:var(--muted)}
-.help-tooltip{position:absolute;left:0;top:32px;background:white;padding:10px;border:1px solid rgba(11,41,23,0.06);border-radius:8px;box-shadow:0 10px 30px rgba(8,18,14,0.06);z-index:50;min-width:160px}
-.tooltip-list{list-style:none;padding:6px 0;margin:0}
-.tooltip-list li{padding:4px 0;border-bottom:1px dashed rgba(11,41,23,0.03)}
-.size-form{display:flex;gap:6px;align-items:center;margin-left:8px}
 .size-input{width:60px;padding:8px;border:1px solid rgba(11,41,23,0.06);border-radius:8px}
 @media (max-width:1000px){
   .main-grid{grid-template-columns:1fr 1fr}
@@ -57,4 +71,8 @@ html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Seg
   .main-grid{grid-template-columns:1fr}
   .hero h2{font-size:1.3rem}
   .logo svg{width:40px;height:40px}
+  .gift-header{flex-direction:column}
+  .gift-actions{justify-content:flex-start}
+  .gift-row{grid-template-columns:1fr}
+  .gift-row-controls{justify-content:flex-start}
 }
