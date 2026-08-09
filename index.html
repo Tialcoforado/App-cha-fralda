@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Gerenciador Chá de Fraldas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>Chá de Fraldas</h1>
+      <p class="subtitle">Gerencie convidados e presentes de forma simples</p>
+    </div>
+  </header>
+
+  <main class="container main-grid">
+    <section class="card">
+      <h2>Convidados</h2>
+      <form id="guest-form" class="form-inline">
+        <input type="text" id="guest-name" placeholder="Nome do convidado" required>
+        <select id="guest-rsvp">
+          <option value="pendente">Pendente</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <button type="submit">Adicionar</button>
+      </form>
+      <ul id="guest-list" class="list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Presentes</h2>
+      <form id="gift-form" class="form-inline">
+        <input type="text" id="gift-name" placeholder="Nome do presente" required>
+        <button type="submit">Adicionar presente</button>
+      </form>
+      <ul id="gift-list" class="list"></ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
