@@ -33,17 +33,24 @@
   <main class="container">
     <section class="card">
       <h2>Confirmar presença</h2>
+      <div class="instructions">
+          <h3>Como usar este convite</h3>
+          <ol>
+            <li>Preencha seu nome e clique em <strong>Enviar confirmação</strong> para registrar sua presença.</li>
+            <li>Você verá uma mensagem de agradecimento assim que seu cadastro for confirmado.</li>
+            <li>Em seguida, você pode escolher um presente.</li>
+          </ol>
+        </div>
       <form id="guest-form" class="form-inline">
         <input type="text" id="guest-name" placeholder="Nome do convidado" required>
-        <select id="guest-rsvp">
-          <option value="pendente">Pendente</option>
-          <option value="confirmado">Confirmado</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-        <button type="submit">Adicionar</button>
+        <input type="text" id="guest-city" placeholder="Cidade" required>
+        <button type="submit">Enviar confirmação</button>
       </form>
-      <div style="margin-top:12px">
-        <ul id="guest-list" class="list"></ul>
+      <div id="guest-confirmation-message" class="guest-confirmation-message" style="display:none">
+        Ótimo, contamos com você!
+      </div>
+      <div id="presentes-button-container" style="margin-top:12px; display:none;">
+        <a href="presentes.html" class="btn btn-primary">Escolher presente</a>
       </div>
       <div style="margin-top:12px">
         <a href="index.html" class="btn">Voltar</a>

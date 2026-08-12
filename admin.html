@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Administração — Chá de Fraldas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <div class="header-inner">
+        <div class="logo">
+          <svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#2bb673" />
+                <stop offset="1" stop-color="#4aa3ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="32" cy="32" r="30" fill="url(#g1)" />
+            <g transform="translate(12,14)" fill="#fff">
+              <path d="M14 0c-3 3-6 4-9 4s-6-1-9-4c3 6 9 11 9 11s6-5 9-11z" />
+            </g>
+          </svg>
+          <div class="brand">Chá de Fraldas</div>
+        </div>
+        <p class="subtitle">Administração</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Lista de convidados</h2>
+      <p class="lead">Esta página exibe apenas os nomes dos convidados registrados.</p>
+      <ul id="guest-list" class="list" data-role="admin"></ul>
+      <hr class="section-divider">
+        <h3>Cadastro de itens para presente</h3>
+      <form id="gift-form" class="gift-form">
+        <div class="field-group">
+          <label for="gift-name">Nome do produto</label>
+          <input type="text" id="gift-name" placeholder="Nome do presente" required>
+        </div>
+        <div class="field-group">
+          <label for="gift-description">Descrição</label>
+          <input type="text" id="gift-description" placeholder="Ex.: Mochila maternidade com vários bolsos">
+        </div>
+        <div class="field-group">
+          <label>Tamanho (se houver)</label>
+          <div class="radio-group">
+            <label class="radio-option"><input type="radio" name="gift-size" value="RN"> RN</label>
+            <label class="radio-option"><input type="radio" name="gift-size" value="P"> P</label>
+            <label class="radio-option"><input type="radio" name="gift-size" value="M"> M</label>
+            <label class="radio-option"><input type="radio" name="gift-size" value="G"> G</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group half">
+            <label for="gift-quantity">Quantidade desejada</label>
+            <input type="number" id="gift-quantity" min="1" value="1">
+          </div>
+          <div class="field-group half">
+            <label for="gift-image">Imagem (URL)</label>
+            <input type="url" id="gift-image" placeholder="https://...">
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="gift-links">Links de compra (um por linha)</label>
+          <textarea id="gift-links" placeholder="https://...
+https://..."></textarea>
+        </div>
+        <button type="submit">Adicionar presente</button>
+      </form>
+      <div style="margin-top:12px">
+        <a href="index.html" class="btn">Voltar</a>
+      </div>
+    </section>
+  </main>
+
+  
+
+  <script src="app.js"></script>
+</body>
+</html>

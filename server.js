@@ -59,12 +59,18 @@ async function initDatabase() {
     reservedById TEXT,
     purchased INTEGER NOT NULL DEFAULT 0,
     sizesSupported INTEGER NOT NULL DEFAULT 0,
-    reservations TEXT
+    reservations TEXT,
+    imageUrl TEXT,
+    sizeLabel TEXT,
+    quantityDesired INTEGER NOT NULL DEFAULT 1,
+    links TEXT
   )`);
+
+  await ensureGiftColumns();
 
   const rows = await allAsync('SELECT COUNT(*) AS count FROM gifts');
   if (rows[0].count === 0) {
-    const stmt = db.prepare(`INSERT INTO gifts (id, name, description, link, reservedById, purchased, sizesSupported, reservations) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const stmt = db.prepare(`INSERT INTO gifts (id, name, description, link, reservedById, purchased, sizesSupported, reservations, imageUrl, sizeLabel, quantityDesired, links) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     DEFAULT_GIFTS_RAW.forEach(raw => {
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
       stmt.run(
@@ -75,10 +81,31 @@ async function initDatabase() {
         '',
         raw.comprado ? 1 : 0,
         raw.sizesSupported ? 1 : 0,
-        JSON.stringify([])
+        JSON.stringify([]),
+        raw.imageUrl || '',
+        raw.sizeLabel || '',
+        raw.quantityDesired ? Number(raw.quantityDesired) : 1,
+        raw.links ? JSON.stringify(raw.links) : JSON.stringify([])
       );
     });
     stmt.finalize();
+  }
+}
+
+async function ensureGiftColumns() {
+  const columns = await allAsync(`PRAGMA table_info(gifts)`);
+  const names = columns.map(col => col.name);
+  const definitions = [
+    { name: 'imageUrl', type: 'TEXT' },
+    { name: 'sizeLabel', type: 'TEXT' },
+    { name: 'quantityDesired', type: 'INTEGER NOT NULL DEFAULT 1' },
+    { name: 'links', type: 'TEXT' }
+  ];
+
+  for (const column of definitions) {
+    if (!names.includes(column.name)) {
+      await runAsync(`ALTER TABLE gifts ADD COLUMN ${column.name} ${column.type}`);
+    }
   }
 }
 
@@ -87,6 +114,10 @@ function normalizeGiftRow(row) {
     id: row.id,
     name: row.name,
     description: row.description || '',
+    imageUrl: row.imageUrl || '',
+    sizeLabel: row.sizeLabel || '',
+    quantityDesired: Number(row.quantityDesired || 1),
+    links: row.links ? JSON.parse(row.links) : [],
     link: row.link || '',
     reservedById: row.reservedById || '',
     purchased: !!row.purchased,
@@ -125,7 +156,7 @@ app.post('/api/state', async (req, res) => {
     });
     guestStmt.finalize();
 
-    const giftStmt = db.prepare(`INSERT INTO gifts (id, name, description, link, reservedById, purchased, sizesSupported, reservations) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const giftStmt = db.prepare(`INSERT INTO gifts (id, name, description, link, reservedById, purchased, sizesSupported, reservations, imageUrl, sizeLabel, quantityDesired, links) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     gifts.forEach(gift => {
       giftStmt.run(
         gift.id,
@@ -135,7 +166,11 @@ app.post('/api/state', async (req, res) => {
         gift.reservedById || '',
         gift.purchased ? 1 : 0,
         gift.sizesSupported ? 1 : 0,
-        JSON.stringify(Array.isArray(gift.reservations) ? gift.reservations : [])
+        JSON.stringify(Array.isArray(gift.reservations) ? gift.reservations : []),
+        gift.imageUrl || '',
+        gift.sizeLabel || '',
+        Number(gift.quantityDesired || 1),
+        JSON.stringify(Array.isArray(gift.links) ? gift.links : [])
       );
     });
     giftStmt.finalize();

@@ -26,6 +26,7 @@
           <div class="brand">Chá de Bebê</div>
         </div>
         <p class="subtitle">Gerencie convidados e presentes de forma simples</p>
+        <a id="admin-link" class="admin-link" href="admin.html">Administração</a>
       </div>
     </div>
   </header>
@@ -38,18 +39,26 @@
         <a href="presenca.html" class="btn btn-primary">Confirmar presença</a>
         <a href="presentes.html" class="btn btn-secondary">Escolher presente</a>
       </div>
-        <div class="instructions">
-          <h3>Como usar este convite</h3>
-          <ol>
-            <li>Preencha seu nome e escolha o status. Use o botão <strong>Enviar confirmação</strong> para confirmar sua presença.</li>
-            <li>Ou clique em "Escolher presente" para ir ao painel de presentes.</li>
-            <li>Ao escolher um presente, selecione seu nome no campo de reserva e, se for fralda, informe as quantidades por tamanho (RN, P, M, G). Depois clique em <strong>Enviar presente</strong> para confirmar sua escolha.</li>
-            <li>Clique no botão <span class="help-btn">?</span> ao lado de qualquer contador para ver a lista de convidados que registraram unidades.</li>
-            <li>Os dados são salvos localmente no seu navegador (localStorage). Para limpar, use as devtools do navegador ou o botão de limpar dados do navegador.</li>
-          </ol>
+      <div class="video-section">
+        <h3>Vídeo de apresentação</h3>
+        <p>Insira o link do YouTube ou outro vídeo de apresentação abaixo para que seus convidados possam assistir.</p>
+        <div class="video-wrapper">
+          <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="Vídeo de apresentação" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
+      </div>
     </div>
   </section>
   <script src="app.js"></script>
+  <script>
+    document.getElementById('admin-link')?.addEventListener('click', function(event) {
+      const secret = prompt('Digite a palavra-passe de administração:');
+      if (secret !== 'al.coforado') {
+        event.preventDefault();
+        if (secret !== null) {
+          alert('Senha incorreta.');
+        }
+      }
+    });
+  </script>
 </body>
 </html>

@@ -21,10 +21,22 @@ const DEFAULT_GIFTS_RAW = [
 ];
 
 function makeGiftFromRaw(raw){
+  const links = Array.isArray(raw.links)
+    ? raw.links
+    : typeof raw.links === 'string'
+      ? raw.links.split('\n').map(link => link.trim()).filter(Boolean)
+      : raw.link
+        ? [raw.link]
+        : [];
+
   return {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
     name: raw.nome || raw.name || 'Presente',
     description: raw.descricao || raw.description || '',
+    imageUrl: raw.imageUrl || raw.imagem || raw.foto || '',
+    sizeLabel: raw.sizeLabel || raw.tamanho || '',
+    quantityDesired: Number(raw.quantityDesired || raw.quantidade || raw.quantity || 1) || 1,
+    links,
     link: raw.link || raw.url || '',
     reservedById: raw.reservedById || '',
     purchased: !!raw.comprado || !!raw.purchased || false,
@@ -142,11 +154,18 @@ async function persistState(){
 
 const guestForm = document.getElementById('guest-form');
 const guestNameInput = document.getElementById('guest-name');
-const guestRsvpSelect = document.getElementById('guest-rsvp');
+const guestCityInput = document.getElementById('guest-city');
 const guestList = document.getElementById('guest-list');
+const guestConfirmationMessage = document.getElementById('guest-confirmation-message');
+const presentesButtonContainer = document.getElementById('presentes-button-container');
 
 const giftForm = document.getElementById('gift-form');
 const giftNameInput = document.getElementById('gift-name');
+const giftDescriptionInput = document.getElementById('gift-description');
+const giftSizeRadios = document.querySelectorAll('input[name="gift-size"]');
+const giftQuantityInput = document.getElementById('gift-quantity');
+const giftImageInput = document.getElementById('gift-image');
+const giftLinksInput = document.getElementById('gift-links');
 const giftList = document.getElementById('gift-list');
 
 const hasGuestSection = !!guestList;
@@ -158,6 +177,24 @@ function saveState(){
 
 function renderGuests(){
   if(!hasGuestSection) return;
+
+  const isAdminSection = guestList.dataset.role === 'admin';
+  if(isAdminSection){
+    guestList.innerHTML = '';
+    if(!guests.length){
+      const empty = document.createElement('li');
+      empty.textContent = 'Nenhum convidado cadastrado.';
+      guestList.appendChild(empty);
+      return;
+    }
+    guests.forEach(guest => {
+      const li = document.createElement('li');
+      li.textContent = guest.name;
+      guestList.appendChild(li);
+    });
+    return;
+  }
+
   guestList.innerHTML = '';
   guests.forEach(guest => {
     const li = document.createElement('li');
@@ -199,8 +236,23 @@ function renderGuests(){
   });
 }
 
-function addGuest(name, rsvp){
-  const newGuest = {id: Date.now().toString(), name: name.trim(), rsvp: rsvp || 'pendente'};
+function showGuestConfirmationMessage(){
+  if(guestConfirmationMessage){
+    guestConfirmationMessage.textContent = 'Ótimo, contamos com você!';
+    guestConfirmationMessage.style.display = 'block';
+  }
+  if(presentesButtonContainer){
+    presentesButtonContainer.style.display = 'block';
+  }
+}
+
+function addGuest(name, city, rsvp){
+  const newGuest = {
+    id: Date.now().toString(),
+    name: name.trim(),
+    city: city.trim(),
+    rsvp: rsvp || 'pendente'
+  };
   guests.push(newGuest);
   saveState();
   renderGuests();
@@ -258,16 +310,48 @@ function renderGifts(){
 
     const linkWrap = document.createElement('div');
     linkWrap.className = 'gift-meta';
-    if(gift.link){
-      const a = document.createElement('a');
-      a.href = gift.link;
-      a.textContent = 'Ver produto';
-      a.target = '_blank';
-      linkWrap.appendChild(a);
+    if((gift.links && gift.links.length) || gift.link){
+      const title = document.createElement('div');
+      title.textContent = 'Links de compra:';
+      title.style.fontWeight = '600';
+      title.style.marginBottom = '6px';
+      linkWrap.appendChild(title);
+
+      const linkList = document.createElement('ul');
+      linkList.className = 'gift-links';
+      const links = gift.links && gift.links.length ? gift.links : gift.link ? [gift.link] : [];
+      links.forEach(url => {
+        const item = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = url;
+        a.textContent = url.replace(/^https?:\/\//, '');
+        a.target = '_blank';
+        item.appendChild(a);
+        linkList.appendChild(item);
+      });
+      linkWrap.appendChild(linkList);
+    }
+
+    if(gift.imageUrl){
+      const image = document.createElement('img');
+      image.src = gift.imageUrl;
+      image.alt = `Imagem do presente ${gift.name}`;
+      image.className = 'gift-image';
+      card.appendChild(image);
     }
 
     info.appendChild(titleRow);
     info.appendChild(desc);
+    if(gift.sizeLabel){
+      const sizeMeta = document.createElement('div');
+      sizeMeta.className = 'gift-meta';
+      sizeMeta.textContent = `Tamanho: ${gift.sizeLabel}`;
+      info.appendChild(sizeMeta);
+    }
+    const quantityMeta = document.createElement('div');
+    quantityMeta.className = 'gift-meta';
+    quantityMeta.textContent = `Quantidade desejada: ${gift.quantityDesired || 1}`;
+    info.appendChild(quantityMeta);
     info.appendChild(linkWrap);
 
     const actions = document.createElement('div');
@@ -480,8 +564,21 @@ function renderGifts(){
   });
 }
 
-function addGift(name){
-  const newGift = {id: Date.now().toString(), name: name.trim(), reservedById: '', purchased: false, sizesSupported: false, reservations: []};
+function addGift({ name, description = '', imageUrl = '', sizeLabel = '', quantityDesired = 1, links = [], sizesSupported = false }){
+  const newGift = {
+    id: Date.now().toString(),
+    name: name.trim(),
+    description: description.trim(),
+    imageUrl: imageUrl.trim(),
+    sizeLabel: sizeLabel.trim(),
+    quantityDesired: Number(quantityDesired) || 1,
+    links: Array.isArray(links) ? links.filter(Boolean) : [],
+    link: links && links.length ? links[0] : '',
+    reservedById: '',
+    purchased: false,
+    sizesSupported,
+    reservations: []
+  };
   gifts.push(newGift);
   saveState();
   renderGifts();
@@ -506,39 +603,12 @@ if(guestForm){
   guestForm.addEventListener('submit', event => {
     event.preventDefault();
     const name = guestNameInput.value;
-    const rsvp = guestRsvpSelect.value;
-    if(!name.trim()) return;
-    addGuest(name, rsvp);
+    const city = guestCityInput.value;
+    if(!name.trim() || !city.trim()) return;
+    addGuest(name, city, 'confirmado');
+    showGuestConfirmationMessage();
     guestForm.reset();
   });
-}
-
-// Guest send confirmation button (explicit)
-if(guestForm){
-  const guestSendBtn = document.createElement('button');
-  guestSendBtn.type = 'button';
-  guestSendBtn.id = 'guest-send-btn';
-  guestSendBtn.className = 'btn btn-primary';
-  guestSendBtn.textContent = 'Enviar confirmação';
-  guestSendBtn.addEventListener('click', () => {
-    const name = guestNameInput.value && guestNameInput.value.trim();
-    if(!name){
-      alert('Por favor, digite seu nome para confirmar presença.');
-      return;
-    }
-    const existing = guests.find(g => g.name.toLowerCase() === name.toLowerCase());
-    if(existing){
-      updateGuestRsvp(existing.id, 'confirmado');
-    } else {
-      addGuest(name, 'confirmado');
-    }
-    alert('Obrigado! Sua confirmação de presença foi registrada.');
-    guestForm.reset();
-  });
-  const guestFormSubmit = guestForm.querySelector('button[type="submit"]');
-  if(guestFormSubmit && guestFormSubmit.parentNode){
-    guestFormSubmit.parentNode.appendChild(guestSendBtn);
-  }
 }
 
 // Gift form submit
@@ -547,8 +617,27 @@ if(giftForm){
     event.preventDefault();
     const name = giftNameInput.value;
     if(!name.trim()) return;
-    addGift(name);
+
+    const description = giftDescriptionInput.value;
+    const sizeLabel = Array.from(giftSizeRadios).find(radio => radio.checked)?.value || '';
+    const quantityDesired = giftQuantityInput.value;
+    const imageUrl = giftImageInput.value;
+    const links = (giftLinksInput.value || '')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    addGift({
+      name,
+      description,
+      sizeLabel,
+      quantityDesired,
+      imageUrl,
+      links
+    });
+
     giftForm.reset();
+    giftQuantityInput.value = '1';
   });
 }
 
