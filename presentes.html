@@ -26,6 +26,7 @@
           <div class="brand">Chá de Fraldas</div>
         </div>
         <p class="subtitle">Escolher presente</p>
+        <div id="user-info" style="margin-left: auto; color: white; font-size: 0.95rem;"></div>
       </div>
     </div>
   </header>
@@ -42,5 +43,32 @@
   </main>
 
   <script src="app.js"></script>
-</body>
+  
+  <script type="module">
+    // Verificar se usuário está logado e mostrar nome
+    import { currentUser } from './currentUser.js';
+    import { ui } from './ui.js';
+    
+    const userInfoDiv = document.getElementById('user-info');
+    
+    // Tentar obter nome do usuário
+    let userName = currentUser.getName();
+    
+    if (!userName) {
+      // Se não houver usuário, pedir para registrar
+      ui.showWarning('Por favor, registre seu nome em "Confirmar presença" primeiro, ou clique aqui para continuar sem registrar.');
+      
+      // Permitir continuar com prompt
+      const promptResult = prompt('Qual é seu nome?');
+      if (promptResult && promptResult.trim()) {
+        currentUser.setName(promptResult);
+        userName = currentUser.getName();
+      }
+    }
+    
+    // Mostrar nome do usuário logado
+    if (userName) {
+      userInfoDiv.innerHTML = `<span>👤 ${userName}</span>`;
+    }
+  </script></body>
 </html>

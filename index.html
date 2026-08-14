@@ -41,15 +41,18 @@
       </div>
       <div class="video-section">
         <h3>Vídeo de apresentação</h3>
-        <p>Insira o link do YouTube ou outro vídeo de apresentação abaixo para que seus convidados possam assistir.</p>
-        <div class="video-wrapper">
-          <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="Vídeo de apresentação" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        <p>Um vídeo especial pode ser compartilhado aqui em breve! 🎥</p>
+        <div class="video-wrapper" style="background: linear-gradient(135deg, #2bb673, #3d7eff); display: flex; align-items: center; justify-content: center; padding-top: 56.25%;">
+          <div style="position: absolute; text-align: center; color: white;">
+            <div style="font-size: 3em; margin-bottom: 10px;">🎬</div>
+            <p style="margin: 0; font-weight: 500;">Vídeo será ativado em breve</p>
+          </div>
         </div>
       </div>
     </div>
   </section>
-  <script src="app.js"></script>
-  <script>
+  <script type="module" src="app.js"></script>
+  <script type="module">
     document.getElementById('admin-link')?.addEventListener('click', function(event) {
       const secret = prompt('Digite a palavra-passe de administração:');
       if (secret !== 'al.coforado') {

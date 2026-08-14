@@ -1,3 +1,24 @@
+// Importar módulos (usando dynamic imports para compatibilidade)
+let validators, ui, currentUser;
+
+async function loadModules() {
+  try {
+    const validatorsModule = await import('./validators.js');
+    const uiModule = await import('./ui.js');
+    const currentUserModule = await import('./currentUser.js');
+    
+    validators = validatorsModule.validators;
+    ui = uiModule.ui;
+    currentUser = currentUserModule.currentUser;
+  } catch (error) {
+    console.warn('Módulos não carregados, usando fallback:', error);
+    // Fallback se módulos não estiverem disponíveis
+    validators = { validate: () => null, guestName: () => null, guestCity: () => null, quantity: () => null };
+    ui = { showToast: (msg) => console.log(msg), showError: (msg) => alert(msg), showSuccess: (msg) => console.log(msg) };
+    currentUser = { getName: () => null, setName: () => false, isRegistered: () => false, clear: () => {} };
+  }
+}
+
 const GUESTS_KEY = 'cha_guests_v1';
 const GIFTS_KEY = 'cha_gifts_v1';
 
@@ -109,8 +130,13 @@ function addReservationForGift(giftId, guestId, quantity, sizeKey = null) {
 }
 
 function loadLocalState(){
-  guests = JSON.parse(localStorage.getItem(GUESTS_KEY)) || [];
-  gifts = JSON.parse(localStorage.getItem(GIFTS_KEY)) || DEFAULT_GIFTS_RAW.map(makeGiftFromRaw);
+  const savedGuests = JSON.parse(localStorage.getItem(GUESTS_KEY) || 'null');
+  const savedGifts = JSON.parse(localStorage.getItem(GIFTS_KEY) || 'null');
+
+  guests = Array.isArray(savedGuests) ? savedGuests : [];
+  gifts = Array.isArray(savedGifts) && savedGifts.length
+    ? savedGifts
+    : DEFAULT_GIFTS_RAW.map(makeGiftFromRaw);
 }
 
 function saveLocalState(){
@@ -457,8 +483,31 @@ function renderGifts(){
         reserveBtn.textContent = 'Reservar';
         reserveBtn.addEventListener('click', () => {
           const guestId = guestSelect.value;
-          if(!guestId) return;
-          addReservationForGift(gift.id, guestId, qtyInput.value, sizeKey);
+          const qty = qtyInput.value;
+          
+          if(!guestId) {
+            if (ui?.showWarning) ui.showWarning('Selecione seu nome');
+            return;
+          }
+          
+          // Validar quantidade
+          const qtyError = validators?.quantity?.(qty);
+          if (qtyError) {
+            if (ui?.showError) ui.showError(qtyError);
+            return;
+          }
+          
+          addReservationForGift(gift.id, guestId, qty, sizeKey);
+          
+          // Feedback de sucesso
+          if (ui?.showSuccess) {
+            const guestName = getGuestNameById(guestId);
+            ui.showSuccess(`Fralda tamanho ${sizeKey} reservada para ${guestName}!`);
+          }
+          
+          // Limpar campos
+          qtyInput.value = '1';
+          guestSelect.value = '';
         });
 
         controls.appendChild(guestSelect);
@@ -545,8 +594,31 @@ function renderGifts(){
       reserveBtn.textContent = 'Reservar';
       reserveBtn.addEventListener('click', () => {
         const guestId = guestSelect.value;
-        if(!guestId) return;
-        addReservationForGift(gift.id, guestId, qtyInput.value);
+        const qty = qtyInput.value;
+        
+        if(!guestId) {
+          if (ui?.showWarning) ui.showWarning('Selecione seu nome');
+          return;
+        }
+        
+        // Validar quantidade
+        const qtyError = validators?.quantity?.(qty);
+        if (qtyError) {
+          if (ui?.showError) ui.showError(qtyError);
+          return;
+        }
+        
+        addReservationForGift(gift.id, guestId, qty);
+        
+        // Feedback de sucesso
+        if (ui?.showSuccess) {
+          const guestName = getGuestNameById(guestId);
+          ui.showSuccess(`${gift.name} reservado para ${guestName}!`);
+        }
+        
+        // Limpar campos
+        qtyInput.value = '1';
+        guestSelect.value = '';
       });
 
       controls.appendChild(guestSelect);
@@ -604,8 +676,41 @@ if(guestForm){
     event.preventDefault();
     const name = guestNameInput.value;
     const city = guestCityInput.value;
-    if(!name.trim() || !city.trim()) return;
+    
+    // Validar campos
+    const errors = validators?.validate?.({ name, city }, {
+      name: validators.guestName,
+      city: validators.guestCity
+    }) || null;
+    
+    if (errors) {
+      // Mostrar erros de validação
+      Object.entries(errors).forEach(([field, message]) => {
+        ui?.showFieldError?.(field, message);
+      });
+      if (ui?.showError) ui.showError('Por favor, verifique os erros acima');
+      return;
+    }
+    
+    // Limpar erros anteriores
+    if (ui?.clearFieldError) {
+      ui.clearFieldError('guest-name');
+      ui.clearFieldError('guest-city');
+    }
+    
+    // Adicionar convidado
     addGuest(name, city, 'confirmado');
+    
+    // Guardar nome em sessionStorage (unificar fluxo)
+    if (currentUser?.setName) {
+      currentUser.setName(name);
+    }
+    
+    // Mostrar feedback
+    if (ui?.showSuccess) {
+      ui.showSuccess(`Bem-vindo, ${name}! Sua presença foi confirmada.`);
+    }
+    
     showGuestConfirmationMessage();
     guestForm.reset();
   });
@@ -616,12 +721,28 @@ if(giftForm){
   giftForm.addEventListener('submit', event => {
     event.preventDefault();
     const name = giftNameInput.value;
+    const quantityDesired = giftQuantityInput.value;
+    const imageUrl = giftImageInput.value;
+    
+    // Validar campos
+    const errors = validators?.validate?.({ name, quantityDesired, imageUrl }, {
+      name: validators.giftName,
+      quantityDesired: validators.quantity,
+      imageUrl: validators.url
+    }) || null;
+    
+    if (errors) {
+      Object.entries(errors).forEach(([field, message]) => {
+        ui?.showFieldError?.(field + '-gift', message);
+      });
+      if (ui?.showError) ui.showError('Por favor, verifique os erros acima');
+      return;
+    }
+    
     if(!name.trim()) return;
 
     const description = giftDescriptionInput.value;
     const sizeLabel = Array.from(giftSizeRadios).find(radio => radio.checked)?.value || '';
-    const quantityDesired = giftQuantityInput.value;
-    const imageUrl = giftImageInput.value;
     const links = (giftLinksInput.value || '')
       .split('\n')
       .map(line => line.trim())
@@ -636,17 +757,27 @@ if(giftForm){
       links
     });
 
+    if (ui?.showSuccess) {
+      ui.showSuccess(`Presente "${name}" adicionado com sucesso!`);
+    }
+    
     giftForm.reset();
     giftQuantityInput.value = '1';
   });
 }
 
-// Inicializa render
-(async function init(){
+async function init(){
+  await loadModules();
+
   const serverLoaded = await fetchState();
   if (!serverLoaded) {
     loadLocalState();
+  } else if (!Array.isArray(gifts) || gifts.length === 0) {
+    gifts = DEFAULT_GIFTS_RAW.map(makeGiftFromRaw);
   }
+
   renderGuests();
   renderGifts();
-})();
+}
+
+init();
